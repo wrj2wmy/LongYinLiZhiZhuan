@@ -1,50 +1,190 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useState, useEffect, useCallback } from 'react';
+import { HeroListPanel } from './components/HeroListPanel';
+import { HeroDetailPanel } from './components/HeroDetailPanel';
+import * as api from './api/commands';
+import type { HeroSummary, HeroDetail, EditStatus } from './types/hero';
+import type { ForceEntry, KungfuEntry, TagEntry, SpeAddEntry } from './types/assets';
+import './App.css';
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [heroes, setHeroes] = useState<HeroSummary[]>([]);
+  const [selectedHeroId, setSelectedHeroId] = useState<number | null>(null);
+  const [heroDetail, setHeroDetail] = useState<HeroDetail | null>(null);
+  const [editStatus, setEditStatus] = useState<EditStatus>({ canUndo: false, canRedo: false, unsavedChanges: 0, undoDescription: null, redoDescription: null });
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  // Asset data
+  const [forces, setForces] = useState<Record<number, ForceEntry>>({});
+  const [skills, setSkills] = useState<Record<number, KungfuEntry>>({});
+  const [tags, setTags] = useState<Record<number, TagEntry>>({});
+  const [speAddNames, setSpeAddNames] = useState<Record<number, SpeAddEntry>>({});
+
+  // Derived hero name map for relationship display
+  const heroNames: Record<number, string> = {};
+  heroes.forEach((h) => { heroNames[h.heroId] = h.heroName; });
+
+  const loadSave = useCallback(async (slotPath: string) => {
+    setLoading(true);
+    try {
+      const count = await api.loadSave(slotPath);
+      console.log(`Loaded ${count} heroes`);
+
+      const [heroList, forceData, skillData, tagData, speData] = await Promise.all([
+        api.getHeroList(),
+        api.getForceList(),
+        api.getSkillList(),
+        api.getTagList(),
+        api.getSpeAddNames(),
+      ]);
+
+      setHeroes(heroList);
+      setForces(forceData);
+      setSkills(skillData);
+      setTags(tagData);
+      setSpeAddNames(speData);
+      setLoaded(true);
+      setSelectedHeroId(null);
+      setHeroDetail(null);
+    } catch (err) {
+      console.error('Failed to load save:', err);
+      alert(`加载失败: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleOpenSave = useCallback(async () => {
+    // Temporary hardcoded path for development; will be replaced by file dialog in Task 11
+    const path = 'saves/SaveSlot1';
+    await loadSave(path);
+  }, [loadSave]);
+
+  const selectHero = useCallback(async (heroId: number) => {
+    setSelectedHeroId(heroId);
+    try {
+      const detail = await api.getHero(heroId);
+      setHeroDetail(detail);
+    } catch (err) {
+      console.error('Failed to load hero:', err);
+    }
+  }, []);
+
+  const handleFieldChange = useCallback(async (fieldPath: string, value: unknown) => {
+    if (selectedHeroId === null) return;
+    try {
+      await api.updateHeroField(selectedHeroId, fieldPath, value);
+      const detail = await api.getHero(selectedHeroId);
+      setHeroDetail(detail);
+      const status = await api.getEditStatus();
+      setEditStatus(status);
+    } catch (err) {
+      console.error('Failed to update field:', err);
+    }
+  }, [selectedHeroId]);
+
+  const handleUndo = useCallback(async () => {
+    await api.undoEdit();
+    if (selectedHeroId !== null) {
+      const detail = await api.getHero(selectedHeroId);
+      setHeroDetail(detail);
+    }
+    const status = await api.getEditStatus();
+    setEditStatus(status);
+    const heroList = await api.getHeroList();
+    setHeroes(heroList);
+  }, [selectedHeroId]);
+
+  const handleRedo = useCallback(async () => {
+    await api.redoEdit();
+    if (selectedHeroId !== null) {
+      const detail = await api.getHero(selectedHeroId);
+      setHeroDetail(detail);
+    }
+    const status = await api.getEditStatus();
+    setEditStatus(status);
+    const heroList = await api.getHeroList();
+    setHeroes(heroList);
+  }, [selectedHeroId]);
+
+  const handleSave = useCallback(async () => {
+    try {
+      const backup = await api.saveFile();
+      alert(`保存成功！备份: ${backup}`);
+      const status = await api.getEditStatus();
+      setEditStatus(status);
+    } catch (err) {
+      alert(`保存失败: ${err}`);
+    }
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'z') { e.preventDefault(); handleUndo(); }
+      if (e.ctrlKey && e.key === 'y') { e.preventDefault(); handleRedo(); }
+      if (e.ctrlKey && e.key === 's') { e.preventDefault(); handleSave(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleUndo, handleRedo, handleSave]);
+
+  if (!loaded) {
+    return (
+      <div className="app-loading">
+        <h1>龙隐立志传 存档编辑器</h1>
+        <button onClick={() => handleOpenSave()} disabled={loading}>
+          {loading ? '加载中...' : '打开存档'}
+        </button>
+      </div>
+    );
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app">
+      <div className="toolbar">
+        <button onClick={() => handleOpenSave()}>打开存档</button>
+        <button onClick={handleSave} disabled={editStatus.unsavedChanges === 0}>
+          保存 {editStatus.unsavedChanges > 0 ? `(${editStatus.unsavedChanges})` : ''}
+        </button>
+        <button onClick={handleUndo} disabled={!editStatus.canUndo} title={editStatus.undoDescription || ''}>
+          撤销
+        </button>
+        <button onClick={handleRedo} disabled={!editStatus.canRedo} title={editStatus.redoDescription || ''}>
+          重做
+        </button>
+        <span className="toolbar-title">龙隐立志传 存档编辑器</span>
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+      <div className="main-content">
+        <HeroListPanel
+          heroes={heroes}
+          forces={forces}
+          selectedHeroId={selectedHeroId}
+          onSelectHero={selectHero}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+        {heroDetail && selectedHeroId !== null ? (
+          <HeroDetailPanel
+            hero={heroDetail}
+            heroId={selectedHeroId}
+            forces={forces}
+            skills={skills}
+            tags={tags}
+            speAddNames={speAddNames}
+            heroNames={heroNames}
+            onFieldChange={handleFieldChange}
+          />
+        ) : (
+          <div className="no-hero-selected">
+            <p>请从左侧列表选择一位侠客</p>
+          </div>
+        )}
+      </div>
+      <div className="status-bar">
+        {editStatus.unsavedChanges > 0
+          ? `${editStatus.unsavedChanges} 处未保存的修改 | Ctrl+Z 撤销 | Ctrl+S 保存`
+          : '就绪'}
+      </div>
+    </div>
   );
 }
 
