@@ -1,0 +1,74 @@
+.hero-list-panel {
+  width: 260px;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.hero-list-header {
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.hero-search {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.hero-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.hero-filters select {
+  flex: 1;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.hero-count {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.hero-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.hero-row:hover { background: #e8f0fe; }
+.hero-row.selected { background: #d2e3fc; }
+.hero-row.dead { opacity: 0.5; }
+
+.hero-row-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.hero-row-info {
+  font-size: 11px;
+  color: #666;
+}
+
+.leader-badge {
+  display: inline-block;
+  background: #f4b400;
+  color: white;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
