@@ -48,6 +48,12 @@ pub struct SaveManager {
     unsaved_count: usize,
 }
 
+impl Default for SaveManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SaveManager {
     pub fn new() -> Self {
         SaveManager {
@@ -79,7 +85,8 @@ impl SaveManager {
                             count += 1;
                             heroes.push(Some(hero));
                         }
-                        Err(_) => {
+                        Err(e) => {
+                            eprintln!("Warning: hero at index {} failed to parse: {}", heroes.len(), e);
                             heroes.push(None);
                         }
                     }
@@ -121,7 +128,7 @@ impl SaveManager {
         new_value: Value,
     ) -> Result<(), String> {
         let idx = self.heroes.iter().position(|h| {
-            h.as_ref().map_or(false, |hero| hero.hero_id == hero_id)
+            h.as_ref().is_some_and(|hero| hero.hero_id == hero_id)
         }).ok_or_else(|| format!("Hero {} not found", hero_id))?;
 
         let raw = self.heroes_raw[idx].as_mut()
@@ -130,6 +137,10 @@ impl SaveManager {
         let old_value = get_nested_value(raw, field_path)
             .cloned()
             .unwrap_or(Value::Null);
+
+        if old_value == new_value {
+            return Ok(());
+        }
 
         set_nested_value(raw, field_path, new_value.clone())?;
 
@@ -227,8 +238,11 @@ impl SaveManager {
         // Serialize and write
         let json = serde_json::to_string(&self.heroes_raw)
             .map_err(|e| format!("Failed to serialize: {}", e))?;
-        fs::write(path, &json)
-            .map_err(|e| format!("Failed to write file: {}", e))?;
+        let temp_path = path.with_extension("tmp");
+        fs::write(&temp_path, &json)
+            .map_err(|e| format!("Failed to write temp file: {}", e))?;
+        fs::rename(&temp_path, path)
+            .map_err(|e| format!("Failed to rename temp file: {}", e))?;
 
         self.unsaved_count = 0;
         Ok(backup_path)
