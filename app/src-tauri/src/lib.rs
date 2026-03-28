@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod models;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
