@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { open } from '@tauri-apps/plugin-dialog';
 import { HeroListPanel } from './components/HeroListPanel';
 import { HeroDetailPanel } from './components/HeroDetailPanel';
 import * as api from './api/commands';
@@ -55,9 +56,12 @@ function App() {
   }, []);
 
   const handleOpenSave = useCallback(async () => {
-    // Temporary hardcoded path for development; will be replaced by file dialog in Task 11
-    const path = 'saves/SaveSlot1';
-    await loadSave(path);
+    const selected = await open({
+      directory: true,
+      title: '选择存档文件夹 (SaveSlot)',
+    });
+    if (!selected) return;
+    await loadSave(selected);
   }, [loadSave]);
 
   const selectHero = useCallback(async (heroId: number) => {
