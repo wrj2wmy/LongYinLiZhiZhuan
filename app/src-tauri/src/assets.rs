@@ -33,6 +33,20 @@ pub struct KungfuEntry {
     pub level: i32,
     pub name: String,
     pub description: String,
+    /// 经验系数
+    pub exp_coeff: String,
+    /// 修炼效果 (e.g. "内功1;经脉1")
+    pub train_effect: String,
+    /// 运功效果 (e.g. "生命上限20;内力上限20;内功4")
+    pub use_effect: String,
+    /// 修炼需求 (e.g. "内功10")
+    pub train_req: String,
+    /// 使用特效 (col 13, e.g. "伤害0.04;破甲0.06") — combat skills
+    pub use_special: String,
+    /// 内力消耗
+    pub mana_cost: String,
+    /// 所属势力 ID (-1 = none)
+    pub belong_force: String,
 }
 
 /// Talent / trait from HeroTagData.txt
@@ -93,6 +107,27 @@ fn read_data_lines(path: &Path) -> Result<Vec<String>, String> {
         .map(|l| l.to_string())
         .collect();
     Ok(lines)
+}
+
+/// Split a CSV line respecting double-quoted fields.
+/// Commas inside `"..."` are preserved within the field value.
+/// The surrounding quotes are stripped from returned values.
+fn split_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    for ch in line.chars() {
+        match ch {
+            '"' => in_quotes = !in_quotes,
+            ',' if !in_quotes => {
+                fields.push(current.clone());
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+    fields.push(current);
+    fields
 }
 
 /// Parse a field as i32, returning a descriptive error on failure.
@@ -163,34 +198,33 @@ fn parse_kungfu(path: &Path) -> Result<HashMap<i32, KungfuEntry>, String> {
     let file = path.display().to_string();
     let mut map = HashMap::new();
     for (i, line) in lines.iter().enumerate() {
-        let cols: Vec<&str> = line.split(',').collect();
-        // Header has 29 columns; description is column index 4 and may
-        // theoretically contain ASCII commas (though in practice the data
-        // uses Chinese commas).  We require at least 5 columns.
-        if cols.len() < 5 {
-            return Err(format!("{}:{}: expected >=5 columns, got {}", file, i + 2, cols.len()));
+        // Use CSV-aware splitter to handle quoted fields like "1,1,1"
+        let cols = split_csv_line(line);
+        if cols.len() < 16 {
+            return Err(format!(
+                "{}:{}: expected >=16 columns, got {}",
+                file,
+                i + 2,
+                cols.len()
+            ));
         }
-        let id = parse_i32(cols[0], "id", i + 2, &file)?;
-        let level = parse_i32(cols[2], "level", i + 2, &file)?;
-        // If there are extra columns beyond 29, the description spanned
-        // commas.  Re-join cols[4..end-24] to reconstruct the description,
-        // since there are 24 columns after the description (indices 5..28).
-        let expected_total = 29;
-        let description = if cols.len() > expected_total {
-            // Extra commas in description: join the overflow back together
-            let desc_end = cols.len() - (expected_total - 5);
-            cols[4..desc_end].join(",")
-        } else {
-            cols[4].to_string()
-        };
+        let id = parse_i32(&cols[0], "id", i + 2, &file)?;
+        let level = parse_i32(&cols[2], "level", i + 2, &file)?;
         map.insert(
             id,
             KungfuEntry {
                 id,
-                category: cols[1].to_string(),
+                category: cols[1].clone(),
                 level,
-                name: cols[3].to_string(),
-                description,
+                name: cols[3].clone(),
+                description: cols[4].clone(),
+                exp_coeff: cols[6].clone(),
+                train_effect: cols[7].clone(),
+                use_effect: cols[8].clone(),
+                train_req: cols[10].clone(),
+                use_special: cols[13].clone(),
+                mana_cost: cols[14].clone(),
+                belong_force: cols[15].clone(),
             },
         );
     }
@@ -380,12 +414,33 @@ mod tests {
     fn test_kungfu_details() {
         let data = AssetData::load_from_dir(&assets_dir()).expect("failed to load asset data");
         let entry = &data.kungfu_skills[&0];
+        assert_eq!(entry.name, "吐纳法");
+        assert_eq!(entry.category, "内功");
         assert_eq!(entry.level, 0);
         assert!(
             entry.description.contains("浊气"),
             "description should mention 浊气, got: {}",
             entry.description
         );
+        // New fields
+        assert_eq!(entry.exp_coeff, "0.9");
+        assert_eq!(entry.train_effect, "内功1;经脉1");
+        assert_eq!(entry.use_effect, "生命上限20;内力上限20;内功4;智力4;经脉4");
+        assert!(entry.train_req.is_empty(), "吐纳法 has no train requirement");
+        assert_eq!(entry.mana_cost, "0");
+        assert_eq!(entry.belong_force, "-1");
+
+        // Verify quoted-CSV skill (太祖长拳, id=9) parses correctly.
+        // This row has quoted fields like "1,1,1" that previously broke parsing.
+        let taizu = &data.kungfu_skills[&9];
+        assert_eq!(taizu.name, "太祖长拳");
+        assert_eq!(taizu.category, "拳掌");
+        assert_eq!(taizu.train_effect, "拳掌1");
+        // use_effect (col 8) is empty for combat skills
+        assert!(taizu.use_effect.is_empty());
+        // use_special (col 13) has the combat effect
+        assert_eq!(taizu.use_special, "伤害0.04");
+        assert_eq!(taizu.mana_cost, "5");
     }
 
     #[test]

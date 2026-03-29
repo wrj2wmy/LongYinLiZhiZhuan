@@ -12,6 +12,13 @@ export interface KungfuEntry {
   level: number;
   name: string;
   description: string;
+  exp_coeff: string;
+  train_effect: string;
+  use_effect: string;
+  train_req: string;
+  use_special: string;
+  mana_cost: string;
+  belong_force: string;
 }
 
 export interface TagEntry {

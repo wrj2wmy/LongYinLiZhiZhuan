@@ -1,74 +1,204 @@
+/* ===== Hero List Panel ===== */
 .hero-list-panel {
-  width: 260px;
-  border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  background: #fafafa;
+  height: 100%;
+  overflow: hidden;
 }
 
 .hero-list-header {
-  padding: 8px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 12px 8px;
+  flex-shrink: 0;
 }
 
-.hero-search {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #d0d0d0;
-  border-radius: 4px;
-  margin-bottom: 6px;
-  font-size: 13px;
-  box-sizing: border-box;
+[data-theme="dark"] .hero-list-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.hero-filters {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
+[data-theme="light"] .hero-list-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.hero-filters select {
+.hero-list-body {
   flex: 1;
-  font-size: 12px;
-  padding: 2px 4px;
+  overflow: hidden;
+  min-height: 0;
 }
 
-.hero-count {
+/* ===== Count Pill ===== */
+.hero-count-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 16px;
   font-size: 11px;
-  color: #888;
-  margin-top: 4px;
+  font-weight: 600;
 }
 
-.hero-row {
+[data-theme="dark"] .hero-count-pill {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="light"] .hero-count-pill {
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+/* ===== Hero Card ===== */
+.hero-card {
+  padding: 4px 8px;
+}
+
+.hero-card__inner {
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 4px 12px;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 4px;
 }
 
-.hero-row:hover { background: #e8f0fe; }
-.hero-row.selected { background: #d2e3fc; }
-.hero-row.dead { opacity: 0.5; }
-
-.hero-row-name {
-  font-size: 14px;
-  font-weight: 500;
+[data-theme="dark"] .hero-card__inner {
+  background: #1E293B;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.hero-row-info {
+[data-theme="light"] .hero-card__inner {
+  background: #f1f5f9;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.hero-card__inner:hover {
+  transform: translateX(4px);
+}
+
+[data-theme="dark"] .hero-card__inner:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="light"] .hero-card__inner:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+}
+
+/* Selected state */
+[data-theme="dark"] .hero-card--selected .hero-card__inner {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15));
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="light"] .hero-card--selected .hero-card__inner {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.08));
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* Dead state */
+.hero-card--dead .hero-card__inner {
+  opacity: 0.45;
+}
+
+/* ===== Card Content ===== */
+.hero-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hero-card__name {
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-card__gender {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
   font-size: 11px;
-  color: #666;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
-.leader-badge {
-  display: inline-block;
-  background: #f4b400;
-  color: white;
+.hero-card__gender.male {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.hero-card__gender.female {
+  background: rgba(236, 72, 153, 0.15);
+  color: #ec4899;
+}
+
+.hero-card__id {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .hero-card__id {
+  color: #64748B;
+}
+
+[data-theme="light"] .hero-card__id {
+  color: #94a3b8;
+}
+
+/* ===== Chips ===== */
+.hero-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
   font-size: 10px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  margin-right: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 16px;
+}
+
+[data-theme="dark"] .hero-chip--force {
+  background: rgba(255, 255, 255, 0.06);
+  color: #94A3B8;
+}
+
+[data-theme="light"] .hero-chip--force {
+  background: rgba(0, 0, 0, 0.05);
+  color: #64748b;
+}
+
+.hero-chip--lv {
+  border: 1px solid;
+}
+
+[data-theme="dark"] .hero-chip--age {
+  background: rgba(255, 255, 255, 0.06);
+  color: #64748B;
+}
+
+[data-theme="light"] .hero-chip--age {
+  background: rgba(0, 0, 0, 0.04);
+  color: #94a3b8;
 }

@@ -1,9 +1,9 @@
 export interface HeroSummary {
-  heroId: number;
+  heroID: number;
   heroName: string;
   heroNickName: string | null;
   isFemale: boolean;
-  belongForceId: number;
+  belongForceID: number;
   dead: boolean;
   isLeader: boolean;
   age: number;

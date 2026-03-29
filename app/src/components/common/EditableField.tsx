@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { Form, Input, InputNumber, Checkbox, Select } from 'antd';
 
 interface NumberFieldProps {
-  label: string;
+  label: ReactNode;
   value: number;
   onChange: (val: number) => void;
   min?: number;
@@ -11,42 +13,39 @@ interface NumberFieldProps {
 }
 
 export function NumberField({ label, value, onChange, min, max, step = 1, disabled }: NumberFieldProps) {
-  const [local, setLocal] = useState(String(value));
+  const [local, setLocal] = useState<number | null>(value);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    setLocal(String(value));
+    setLocal(value);
   }, [value]);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setLocal(raw);
+  const handleChange = useCallback((val: number | null) => {
+    setLocal(val);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      const num = parseFloat(raw);
-      if (!isNaN(num)) onChange(num);
+      if (val !== null) onChange(val);
     }, 300);
   }, [onChange]);
 
   return (
-    <div className="field-row">
-      <label className="field-label">{label}</label>
-      <input
-        type="number"
-        className="field-input"
+    <Form.Item label={label} style={{ marginBottom: 6 }}>
+      <InputNumber
         value={local}
         onChange={handleChange}
         min={min}
         max={max}
         step={step}
         disabled={disabled}
+        size="small"
+        style={{ width: '100%', maxWidth: 180 }}
       />
-    </div>
+    </Form.Item>
   );
 }
 
 interface TextFieldProps {
-  label: string;
+  label: ReactNode;
   value: string;
   onChange: (val: string) => void;
   disabled?: boolean;
@@ -68,42 +67,39 @@ export function TextField({ label, value, onChange, disabled }: TextFieldProps) 
   }, [onChange]);
 
   return (
-    <div className="field-row">
-      <label className="field-label">{label}</label>
-      <input
-        type="text"
-        className="field-input"
+    <Form.Item label={label} style={{ marginBottom: 6 }}>
+      <Input
         value={local}
         onChange={handleChange}
         disabled={disabled}
+        size="small"
+        style={{ maxWidth: 180 }}
       />
-    </div>
+    </Form.Item>
   );
 }
 
 interface CheckboxFieldProps {
-  label: string;
+  label: ReactNode;
   value: boolean;
   onChange: (val: boolean) => void;
 }
 
 export function CheckboxField({ label, value, onChange }: CheckboxFieldProps) {
   return (
-    <div className="field-row">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={value}
-          onChange={(e) => onChange(e.target.checked)}
-        />
+    <Form.Item style={{ marginBottom: 6 }}>
+      <Checkbox
+        checked={value}
+        onChange={(e) => onChange(e.target.checked)}
+      >
         {label}
-      </label>
-    </div>
+      </Checkbox>
+    </Form.Item>
   );
 }
 
 interface SelectFieldProps {
-  label: string;
+  label: ReactNode;
   value: number | string;
   options: { value: number | string; label: string }[];
   onChange: (val: number | string) => void;
@@ -111,20 +107,16 @@ interface SelectFieldProps {
 
 export function SelectField({ label, value, options, onChange }: SelectFieldProps) {
   return (
-    <div className="field-row">
-      <label className="field-label">{label}</label>
-      <select
-        className="field-input"
+    <Form.Item label={label} style={{ marginBottom: 6 }}>
+      <Select
         value={value}
-        onChange={(e) => {
-          const v = e.target.value;
-          onChange(isNaN(Number(v)) ? v : Number(v));
-        }}
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
+        onChange={(v) => onChange(v)}
+        options={options}
+        size="small"
+        style={{ maxWidth: 180 }}
+        showSearch
+        optionFilterProp="label"
+      />
+    </Form.Item>
   );
 }
